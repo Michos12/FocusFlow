@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./database/pool.js";
 import todoRouter from "./routes/toDoRoutes.js";
-
+import userRouter from "./routes/userRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -14,9 +14,8 @@ app.use(cors());
 app.use(express.json());
 
 // Rutes
-console.log("Routes loaded");
 app.use("/api/todos", todoRouter);
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", userRouter);
 
 // Health check
 app.get("/", (_req, res) => {
