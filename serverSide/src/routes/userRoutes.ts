@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, getAllUsers, deleteUser, getUserByEmail, getUserById, updateUser } from "../controllers/userController.js";
+import { registerUser, getAllUsers, deleteUser, getUserByEmail, getUserById, updateUser, loginUser } from "../controllers/userController.js";
 
 const userRouter = express.Router();
 
@@ -20,5 +20,8 @@ userRouter.delete("/users/:id", deleteUser);
 
 // PATCH /api/auth/users/:id
 userRouter.patch("/users/:id", updateUser);
+
+// POST /api/auth/login
+userRouter.post("/login", loginUser);
 
 export default userRouter;

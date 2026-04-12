@@ -86,3 +86,23 @@ export async function updateUser (req: Request, res: Response) {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export async function loginUser (req: Request, res: Response) {
+  const { email, password } = req.body || {}; 
+  if (!email || !password) {
+    return res.status(400).json({ message: "Missing fields" });
+  }
+  try {
+    const user = await userService.loginUser(email, password);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    res.header("authorization", `Bearer ${user.token}`).status(200).json({
+       message: "Login successful",
+       token: user.token, 
+       email: user.email}); 
+  } catch (error) {
+    console.error("Error in loginUser:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
