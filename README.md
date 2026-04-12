@@ -44,3 +44,9 @@ You don’t have to ever use `eject`. The curated feature set is suitable for sm
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
 To learn React, check out the [React documentation](https://reactjs.org/).
+
+# Features que necesito (2026 - 04 - 10)
+## Page (Dashboard)
+En esta pagina mostrare los todos y el estado en el que estan, los todos tendran como propiedades, un titulo, descripcion, color (predefinido a gris) y status 
+### Posibles mejoras
+Fecha y alertas 
