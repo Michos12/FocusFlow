@@ -38,13 +38,15 @@ export async function getAllTodos (req: Request, res: Response) {
 // POST /api/todos
 export async function createTodo (req: Request, res: Response) {
   try {
-    const { title, userId } = req.body;
+    const title = req.body.title;
+    const description = req.body.description;
+    const userId = (req as any).user.userId;
 
-    if (!title || !userId) {
+    if (!title || !description || !userId) {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    const insertId = await todoService.createTodo(title, userId);
+    const insertId = await todoService.createTodo(title, description, userId);
 
     res.status(201).json({ id: insertId, title });
   } catch (error) {

@@ -17,10 +17,10 @@ export async function getAllTodos(): Promise<Todo[]> {
   return rows;
 };
 
-export async function createTodo( title: string, userId: number): Promise<number> {
+export async function createTodo( title: string, description: string, userId: number): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
-    "INSERT INTO todos (title, user_id) VALUES (?, ?)",
-    [title, userId]
+    "INSERT INTO todos (title, description, user_id) VALUES (?, ?, ?)",
+    [title, description, userId]
   );
   return result.insertId;
 };
