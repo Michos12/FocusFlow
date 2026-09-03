@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   mysql:
     image: mysql:8.0
@@ -9,9 +7,20 @@ services:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: todo_app
     ports:
+      # Host port 3307 -> container port 3306. DB_PORT in serverSide/.env
+      # must be 3307, which is the port reachable from your machine.
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # MySQL runs every .sql file in this directory the first time it
+      # initialises an empty data directory, so the schema is created with the
+      # container. It does NOT re-run on an existing volume.
+      - ./serverSide/src/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   mysql_data:

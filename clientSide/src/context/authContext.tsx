@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import type { AuthContextType } from "../interface/authContext";
+import { setUnauthorizedHandler } from "../services/api";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -15,6 +16,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("token");
     setToken(null);
   };
+
+  // When the API sees an expired token it calls this; clearing the token flips
+  // isAuthenticated, and ProtectedRoute sends the user back to /login.
+  useEffect(() => {
+    setUnauthorizedHandler(logout);
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ token, login, logout, isAuthenticated: !!token }}>

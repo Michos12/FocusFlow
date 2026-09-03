@@ -30,6 +30,11 @@ export async function createTodo (req: AuthRequest, res: Response) {
       return res.status(400).json({ message: "Title is required" });
     }
 
+    // The column is VARCHAR(255); without this the insert fails as a 500.
+    if (title.length > 255) {
+      return res.status(400).json({ message: "Title must be 255 characters or fewer" });
+    }
+
     const insertId = await todoService.createTodo(title, description, requireUserId(req));
 
     res.status(201).json({ id: insertId, title });

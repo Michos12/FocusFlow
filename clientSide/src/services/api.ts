@@ -1,11 +1,17 @@
 const getToken = () => localStorage.getItem("token");
-import { useNavigate } from 'react-router-dom';
-
 
 const API_URL = "http://localhost:4000/api";
 
+// This module is not a React component, so it cannot call hooks such as
+// useNavigate. AuthProvider registers a handler here instead, and the redirect
+// happens through the router once the session is cleared.
+let onUnauthorized: (() => void) | null = null;
+
+export const setUnauthorizedHandler = (handler: (() => void) | null) => {
+  onUnauthorized = handler;
+};
+
 export const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
-  const navigate = useNavigate();
   const token = getToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -20,7 +26,13 @@ export const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    navigate('/login'); // Redirect to login on error
+
+    // Only an expired or invalid token ends the session. A failed login has no
+    // token to expire, and a 400 must not throw the user out of the app.
+    if (response.status === 401 && token) {
+      onUnauthorized?.();
+    }
+
     throw new Error(errorData.message || "Error in the API request");
   }
 

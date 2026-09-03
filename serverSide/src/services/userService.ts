@@ -27,13 +27,6 @@ export async function findUserById ( id: number): Promise<User | null> {
   return rows.length ? rows[0] : null;
 };
 
-export async function getAllUsers (): Promise<User[]> {
-  const [rows] = await pool.execute<User[]>(
-    "SELECT id, email, created_at FROM users ORDER BY created_at DESC"
-  );
-  return rows;
-}
-
 export async function deleteUser ( id: number): Promise<void> {
   await pool.execute(
     "DELETE FROM users WHERE id = ?",

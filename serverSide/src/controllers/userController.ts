@@ -9,6 +9,10 @@ export async function registerUser (req: Request, res: Response) {
     if (!email || !password) {
      return res.status(400).json({ message: "Missing fields" });
     }
+    // The column is VARCHAR(255); without this the insert fails as a 500.
+    if (typeof email !== "string" || email.length > 255) {
+      return res.status(400).json({ message: "Email must be 255 characters or fewer" });
+    }
     const existingUser = await userService.findUserByEmail(email);
 
     if (existingUser) {
