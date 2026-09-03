@@ -132,6 +132,9 @@ Base URL: `http://localhost:4000/api`
 
 Passwords must be at least 8 characters, and the email must be a valid address.
 
+Changing your password logs out every other session. The one making the change
+gets a fresh cookie, so it stays signed in.
+
 ### Tasks
 
 All task routes require authentication and act only on the caller's own tasks.
@@ -164,6 +167,11 @@ someone else get `404`.
 - **Sessions** are JWTs in `httpOnly`, `sameSite=Lax` cookies, marked `Secure`
   when `NODE_ENV=production`. Nothing sensitive is kept in `localStorage`, so an
   XSS cannot steal the session.
+- **Tokens are revocable.** Each user row carries a `token_version` that every
+  token is signed with and that each request checks. Changing a password bumps
+  it, so tokens issued earlier stop working instead of lingering until they
+  expire; deleting an account kills its tokens the same way. The cost is one
+  small indexed lookup per authenticated request.
 - **CORS** allows only the origins listed in `CORS_ORIGIN`. There is no wildcard.
 - **Rate limiting**: 60 requests per minute per IP across the API, and 10 failed
   attempts per minute on `/auth/login` and `/auth/register`.
@@ -220,3 +228,12 @@ docker compose down -v && docker compose up -d
 
 **Changing `docker-compose.yml` did nothing** — same reason. Recreate the
 volume with the command above.
+
+**`Unknown column 'token_version'`** — your volume predates that column, and
+`schema.sql` only runs on a fresh one. Either recreate the volume with the
+command above, or add the column in place and keep your data:
+
+```bash
+docker exec todo-mysql mysql -uroot -proot123 todo_app \
+  -e "ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0 AFTER password;"
+```

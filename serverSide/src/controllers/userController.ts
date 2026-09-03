@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as userService from "../services/userService.js";
-import { hashPassword } from "../services/authService.js";
+import { generateToken, hashPassword } from "../services/authService.js";
 import { AuthRequest } from "../interface/authRequest.js";
 import { COOKIE_MAX_AGE_MS, IS_PRODUCTION } from "../config/env.js";
 import { validateEmail, validatePassword } from "../utils/validation.js";
@@ -96,8 +96,9 @@ export async function updateMe (req: AuthRequest, res: Response) {
       return res.status(400).json({ message: passwordError });
     }
 
+    let newTokenVersion: number;
     try {
-      await userService.updateUser(userId, email, await hashPassword(password));
+      newTokenVersion = await userService.updateUser(userId, email, await hashPassword(password));
     } catch (error) {
       if ((error as { code?: string }).code === "ER_DUP_ENTRY") {
         return res.status(400).json({
@@ -106,6 +107,12 @@ export async function updateMe (req: AuthRequest, res: Response) {
       }
       throw error;
     }
+
+    // The change just revoked every token on the old version, this one
+    // included. Reissue for the caller so they keep the session they are using,
+    // while sessions on other devices are logged out.
+    const token = await generateToken(userId, email, newTokenVersion);
+    res.cookie(AUTH_COOKIE, token, cookieOptions);
 
     res.status(200).json({ id: userId, email });
   } catch (error) {

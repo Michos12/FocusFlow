@@ -34,11 +34,28 @@ export async function deleteUser ( id: number): Promise<void> {
   );
 }
 
-export async function updateUser( id: number, email: string, password: string): Promise<void> {
+// Bumping token_version in the same statement is what revokes every token
+// issued before this change, including sessions on other devices.
+export async function updateUser( id: number, email: string, password: string): Promise<number> {
   await pool.execute(
-    "UPDATE users SET email = ?, password = ? WHERE id = ?",
+    "UPDATE users SET email = ?, password = ?, token_version = token_version + 1 WHERE id = ?",
     [email, password, id]
   );
+
+  const version = await findTokenVersion(id);
+  if (version === null) {
+    throw new Error(`User ${id} disappeared while updating`);
+  }
+  return version;
+}
+
+// Read on every authenticated request, so it stays as narrow as possible.
+export async function findTokenVersion( id: number): Promise<number | null> {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    "SELECT token_version FROM users WHERE id = ?",
+    [id]
+  );
+  return rows.length ? Number(rows[0].token_version) : null;
 }
 
 export async function loginUser ( email: string, password: string): Promise<User | null> {
@@ -56,6 +73,6 @@ export async function loginUser ( email: string, password: string): Promise<User
   if (!isPasswordValid) {
     return null; 
   }
-  const token = await generateToken(user.id, user.email);
+  const token = await generateToken(user.id, user.email, Number(user.token_version));
   return { ...user, token };
 }

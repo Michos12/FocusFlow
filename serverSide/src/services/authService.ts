@@ -12,9 +12,9 @@ export async function comparePassword(password: string, hashedPassword: string):
   return bcrypt.compare(password, hashedPassword);
 }
 
-export async function generateToken(userId: number, email: string): Promise<string> {
+export async function generateToken(userId: number, email: string, tokenVersion: number): Promise<string> {
   return jwt.sign(
-    { userId, email },
+    { userId, email, tokenVersion },
     JWT_SECRET,
     {
       algorithm: "HS256",
