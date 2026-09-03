@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "start": "nodemon --exec npx ts-node src/main.tsx",
+    "start": "vite",
     "preview": "vite preview"
   },
   "dependencies": {

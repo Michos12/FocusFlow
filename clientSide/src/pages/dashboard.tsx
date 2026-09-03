@@ -10,10 +10,6 @@ export default function Dashboard() {
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
 
-  useEffect(() => {
-    loadTodos();
-  }, []);
-
   const loadTodos = async () => {
     try {
       const data = await fetchAPI('/todos');
@@ -22,6 +18,10 @@ export default function Dashboard() {
       console.error("Error loading Todos", error);
     }
   };
+
+  useEffect(() => {
+    loadTodos();
+  }, []);
 
   const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +50,7 @@ export default function Dashboard() {
         method: 'PATCH',
         body: JSON.stringify({ completed: !currentStatus })
       });
-    } catch (error) {
+    } catch {
       loadTodos();
     }
   };
@@ -59,7 +59,7 @@ export default function Dashboard() {
     setTodos(todos.filter(t => t.id !== id));
     try {
       await fetchAPI(`/todos/${id}`, { method: 'DELETE' });
-    } catch (error) {
+    } catch {
       loadTodos();
     }
   };
