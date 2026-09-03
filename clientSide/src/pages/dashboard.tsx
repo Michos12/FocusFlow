@@ -90,7 +90,7 @@ export default function Dashboard() {
           <h1 className="text-4xl font-black text-slate-900 mb-2">My Tasks</h1>
           <div className="flex items-center text-slate-500 text-sm gap-2">
             <Calendar size={14} />
-            <span>{todos.filter(t => !t.completed).length} tasks pending</span>
+            <span>{todos.filter(t => !t.completed).length} tasks</span>
           </div>
         </header>
 
