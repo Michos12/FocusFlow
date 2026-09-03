@@ -62,7 +62,7 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-red-700">Password</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
             <input 
               type="password" 
               value={password}
