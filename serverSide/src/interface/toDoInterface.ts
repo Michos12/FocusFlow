@@ -1,0 +1,10 @@
+import { RowDataPacket } from "mysql2";
+
+export interface Todo extends RowDataPacket {
+    id: number;
+    title: string;
+    description: string;
+    completed: boolean;
+    user_id: number;
+    created_at: Date;
+}

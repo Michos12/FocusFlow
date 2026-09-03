@@ -1,0 +1,30 @@
+import express from "express";
+import {
+  getAllTodos,
+  createTodo,
+  updateStatus,
+  changeDescription,
+  deleteTodo
+} from "../controllers/todoController.js";
+import { authenticate } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+router.use(authenticate);
+
+// GET
+router.get("/", getAllTodos);
+
+// CREATE
+router.post("/", createTodo);
+
+// UPDATE STATUS
+router.patch("/:id/status", updateStatus);
+
+// UPDATE DESCRIPTION
+router.patch("/:id/description", changeDescription);
+
+// DELETE
+router.delete("/:id", deleteTodo);
+
+export default router;
