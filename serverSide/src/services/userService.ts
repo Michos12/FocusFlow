@@ -41,7 +41,7 @@ export async function deleteUser ( id: number): Promise<void> {
   );
 }
 
-export async function updateUser( id: number, email?: string, password?: string): Promise<void> {
+export async function updateUser( id: number, email: string, password: string): Promise<void> {
   await pool.execute(
     "UPDATE users SET email = ?, password = ? WHERE id = ?",
     [email, password, id]

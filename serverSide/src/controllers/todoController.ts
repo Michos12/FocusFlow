@@ -1,52 +1,36 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import * as todoService from "../services/todoService.js";
+import { AuthRequest } from "../interface/authRequest.js";
 
-// GET /api/todos/:userId
-export async function getTodos (req: Request, res: Response) {
-  try {
-    const userId = Number(req.params.userId);
-
-    const todos = await todoService.getTodosByUser(userId);
-
-    if (!todos) {
-      return res.status(404).json({ message: "No todos found" });
-    }
-
-    res.json(todos);
-  } catch (error) {
-    console.error("Error in getTodos:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
+// Every route below is mounted behind `authenticate`, so req.user is always set.
+function requireUserId(req: AuthRequest): number {
+  return req.user!.userId;
+}
 
 // GET /api/todos
-export async function getAllTodos (req: Request, res: Response) {
+export async function getAllTodos (req: AuthRequest, res: Response) {
   try {
-      const todos = await todoService.getAllTodos();
+    const todos = await todoService.getTodosByUser(requireUserId(req));
 
-    if (!todos) {
-      return res.status(404).json({ message: "No todos found" });
-    }
-
-    res.json(todos);
+    // MySQL returns TINYINT(1) as 0/1; the API contract says boolean.
+    res.json(todos.map((todo) => ({ ...todo, completed: Boolean(todo.completed) })));
   } catch (error) {
-    console.error("Error in getTodos:", error);
+    console.error("Error in getAllTodos:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // POST /api/todos
-export async function createTodo (req: Request, res: Response) {
+export async function createTodo (req: AuthRequest, res: Response) {
   try {
-    const title = req.body.title;
-    const description = req.body.description;
-    const userId = (req as any).user.userId;
+    const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+    const description = typeof req.body?.description === "string" ? req.body.description : "";
 
-    if (!title || !description || !userId) {
-      return res.status(400).json({ message: "Missing fields" });
+    if (!title) {
+      return res.status(400).json({ message: "Title is required" });
     }
 
-    const insertId = await todoService.createTodo(title, description, userId);
+    const insertId = await todoService.createTodo(title, description, requireUserId(req));
 
     res.status(201).json({ id: insertId, title });
   } catch (error) {
@@ -55,13 +39,21 @@ export async function createTodo (req: Request, res: Response) {
   }
 };
 
-// PUT /api/todos/:id/status
-export async function updateStatus (req: Request, res: Response){
+// PATCH /api/todos/:id/status
+export async function updateStatus (req: AuthRequest, res: Response){
   try {
     const todoId = Number(req.params.id);
-    const { completed } = req.body;
+    const { completed } = req.body ?? {};
 
-    await todoService.updateTodoStatus(todoId, completed);
+    if (!Number.isInteger(todoId) || typeof completed !== "boolean") {
+      return res.status(400).json({ message: "Invalid id or completed flag" });
+    }
+
+    const updated = await todoService.updateTodoStatus(todoId, completed, requireUserId(req));
+
+    if (!updated) {
+      return res.status(404).json({ message: "Todo not found" });
+    }
 
     res.sendStatus(204);
   } catch (error) {
@@ -71,11 +63,19 @@ export async function updateStatus (req: Request, res: Response){
 };
 
 // DELETE /api/todos/:id
-export async function deleteTodo (req: Request, res: Response) {
+export async function deleteTodo (req: AuthRequest, res: Response) {
   try {
     const todoId = Number(req.params.id);
 
-    await todoService.deleteTodo(todoId);
+    if (!Number.isInteger(todoId)) {
+      return res.status(400).json({ message: "Invalid id" });
+    }
+
+    const deleted = await todoService.deleteTodo(todoId, requireUserId(req));
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Todo not found" });
+    }
 
     res.sendStatus(204);
   } catch (error) {
@@ -84,17 +84,21 @@ export async function deleteTodo (req: Request, res: Response) {
   }
 };
 
-export async function changeDescription (req: Request, res: Response) {
+// PATCH /api/todos/:id/description
+export async function changeDescription (req: AuthRequest, res: Response) {
   try {
     const todoId = Number(req.params.id);
-    const { description } = req.body;
-    const userId = (req as any).user.userId;
+    const { description } = req.body ?? {};
 
-    if (!description) {
-      return res.status(400).json({ message: "Description required" });
+    if (!Number.isInteger(todoId) || typeof description !== "string") {
+      return res.status(400).json({ message: "Invalid id or description" });
     }
 
-    await todoService.changeDescription(todoId, description);
+    const updated = await todoService.changeDescription(todoId, description, requireUserId(req));
+
+    if (!updated) {
+      return res.status(404).json({ message: "Todo not found" });
+    }
 
     res.sendStatus(204);
   } catch (error) {

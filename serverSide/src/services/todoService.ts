@@ -2,17 +2,10 @@ import { ResultSetHeader } from "mysql2";
 import { pool } from "../database/pool.js";
 import { Todo } from "../interface/toDoInterface.js";
 
-export async function getTodosByUser( userId: number): Promise<Todo[] | false>{
+export async function getTodosByUser( userId: number): Promise<Todo[]>{
   const [rows] = await pool.execute<Todo[]>(
     "SELECT * FROM todos WHERE user_id = ? ORDER BY created_at DESC",
     [userId]
-  );
-  return rows;
-};
-
-export async function getAllTodos(): Promise<Todo[]> {
-  const [rows] = await pool.execute<Todo[]>(
-    "SELECT * FROM todos ORDER BY created_at DESC"
   );
   return rows;
 };
@@ -25,23 +18,27 @@ export async function createTodo( title: string, description: string, userId: nu
   return result.insertId;
 };
 
-export async function updateTodoStatus( todoId: number, completed: boolean): Promise<void> {
-  await pool.execute(
-    "UPDATE todos SET completed = ? WHERE id = ?",
-    [completed, todoId]
+// The user_id clause is what keeps a user from touching someone else's todo.
+export async function updateTodoStatus( todoId: number, completed: boolean, userId: number): Promise<boolean> {
+  const [result] = await pool.execute<ResultSetHeader>(
+    "UPDATE todos SET completed = ? WHERE id = ? AND user_id = ?",
+    [completed, todoId, userId]
   );
+  return result.affectedRows > 0;
 };
 
-export async function changeDescription( todoId: number, description: string): Promise<void> {
-  await pool.execute(
-    "UPDATE todos SET description = ? WHERE id = ?",
-    [description, todoId]
+export async function changeDescription( todoId: number, description: string, userId: number): Promise<boolean> {
+  const [result] = await pool.execute<ResultSetHeader>(
+    "UPDATE todos SET description = ? WHERE id = ? AND user_id = ?",
+    [description, todoId, userId]
   );
+  return result.affectedRows > 0;
 };
 
-export async function deleteTodo (todoId: number): Promise<void> {
-  await pool.execute(
-    "DELETE FROM todos WHERE id = ?",
-    [todoId]
+export async function deleteTodo (todoId: number, userId: number): Promise<boolean> {
+  const [result] = await pool.execute<ResultSetHeader>(
+    "DELETE FROM todos WHERE id = ? AND user_id = ?",
+    [todoId, userId]
   );
+  return result.affectedRows > 0;
 };

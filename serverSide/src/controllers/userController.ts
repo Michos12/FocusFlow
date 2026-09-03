@@ -1,16 +1,7 @@
 import { Request, Response } from "express";
 import * as userService from "../services/userService.js";
 import { hashPassword } from "../services/authService.js";
-
-export async function getAllUsers (req: Request, res: Response) {
-  try {
-    const users = await userService.getAllUsers();
-    res.json(users);
-  } catch (error) {
-    console.error("Error in getAllUsers:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
+import { AuthRequest } from "../interface/authRequest.js";
 
 export async function registerUser (req: Request, res: Response) {
   try {
@@ -25,7 +16,7 @@ export async function registerUser (req: Request, res: Response) {
     }
 
     const userId = await userService.createUser(email, await hashPassword(password));
-    
+
     res.status(201).json({ id: userId, email });
   } catch (error) {
     console.error("Error in registerUser:", error);
@@ -33,48 +24,35 @@ export async function registerUser (req: Request, res: Response) {
   }
 };
 
-export async function getUserById (req: Request, res: Response) {
+// GET /api/auth/me
+export async function getMe (req: AuthRequest, res: Response) {
   try {
-    const userId = Number(req.params.id);
-    const user = await userService.findUserById(userId);
+    const user = await userService.findUserById(req.user!.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     res.json(user);
   } catch (error) {
-    console.error("Error in getUserById:", error);
+    console.error("Error in getMe:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export async function getUserByEmail (req: Request, res: Response) {
+// DELETE /api/auth/me - a user can only delete their own account.
+export async function deleteMe (req: AuthRequest, res: Response) {
   try {
-    const email = String(req.params.email);
-    const user = await userService.findUserByEmail(email);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    res.json(user);
-  } catch (error) {
-    console.error("Error in getUserByEmail:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-export async function deleteUser (req: Request, res: Response) {
-  try {
-    const userId = Number(req.params.id);
-    await userService.deleteUser(userId);
+    await userService.deleteUser(req.user!.userId);
     res.status(204).send();
   } catch (error) {
-    console.error("Error in deleteUser:", error);
+    console.error("Error in deleteMe:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
 
-export async function updateUser (req: Request, res: Response) {
+// PATCH /api/auth/me - a user can only update their own account.
+export async function updateMe (req: AuthRequest, res: Response) {
   try {
-    const userId = Number(req.params.id);
+    const userId = req.user!.userId;
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ message: "Missing fields" });
@@ -82,13 +60,13 @@ export async function updateUser (req: Request, res: Response) {
     await userService.updateUser(userId, email, await hashPassword(password));
     res.status(200).json({ id: userId, email });
   } catch (error) {
-    console.error("Error in updateUser:", error);
+    console.error("Error in updateMe:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export async function loginUser (req: Request, res: Response) {
-  const { email, password } = req.body || {}; 
+  const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ message: "Missing fields" });
   }
@@ -99,8 +77,8 @@ export async function loginUser (req: Request, res: Response) {
     }
     res.header("authorization", `Bearer ${user.token}`).status(200).json({
        message: "Login successful",
-       token: user.token, 
-       email: user.email}); 
+       token: user.token,
+       email: user.email});
   } catch (error) {
     console.error("Error in loginUser:", error);
     res.status(500).json({ message: "Internal server error" });
