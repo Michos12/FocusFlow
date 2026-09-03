@@ -88,8 +88,12 @@ All of these live in `serverSide/.env`. See `serverSide/.env.example`.
 | `DB_NAME`        | Database name                              | `todo_app`  |
 | `JWT_SECRET`     | Secret used to sign tokens. **Required.**  | —           |
 | `JWT_EXPIRES_IN` | Token lifetime                             | `2h`        |
+| `CORS_ORIGIN`    | Allowed browser origins, comma-separated. **Required.** | `http://localhost:5173` |
+| `NODE_ENV`       | `production` marks the auth cookie Secure  | `development` |
 
-`.env` is gitignored and must never be committed.
+`.env` is gitignored and must never be committed. The server refuses to start
+without `JWT_SECRET` or `CORS_ORIGIN`, rather than falling back to an insecure
+default.
 
 ## Scripts
 
@@ -120,10 +124,13 @@ Base URL: `http://localhost:4000/api`
 | Method   | Endpoint         | Auth | Description                     |
 | -------- | ---------------- | ---- | ------------------------------- |
 | `POST`   | `/auth/register` | No   | Create an account               |
-| `POST`   | `/auth/login`    | No   | Log in, returns a JWT           |
+| `POST`   | `/auth/login`    | No   | Log in, sets the session cookie |
+| `POST`   | `/auth/logout`   | No   | Clears the session cookie       |
 | `GET`    | `/auth/me`       | Yes  | The current user's profile      |
 | `PATCH`  | `/auth/me`       | Yes  | Update your own email/password  |
 | `DELETE` | `/auth/me`       | Yes  | Delete your own account         |
+
+Passwords must be at least 8 characters, and the email must be a valid address.
 
 ### Tasks
 
@@ -137,8 +144,35 @@ All task routes require authentication and act only on the caller's own tasks.
 | `PATCH`  | `/todos/:id/description`    | Change the description       |
 | `DELETE` | `/todos/:id`                | Delete a task                |
 
-Send the token as a header: `Authorization: Bearer <token>`. Requests without a
-valid token get `401`; requests for a task belonging to someone else get `404`.
+Authentication is a JWT in an `httpOnly` cookie that `POST /auth/login` sets, so
+page scripts can never read it. Browser clients just need `credentials:
+"include"` on their requests; from curl, use a cookie jar:
+
+```bash
+curl -c cookies.txt -X POST http://localhost:4000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"your-password"}'
+
+curl -b cookies.txt http://localhost:4000/api/todos
+```
+
+Requests without a valid session get `401`; requests for a task belonging to
+someone else get `404`.
+
+## Security
+
+- **Sessions** are JWTs in `httpOnly`, `sameSite=Lax` cookies, marked `Secure`
+  when `NODE_ENV=production`. Nothing sensitive is kept in `localStorage`, so an
+  XSS cannot steal the session.
+- **CORS** allows only the origins listed in `CORS_ORIGIN`. There is no wildcard.
+- **Rate limiting**: 60 requests per minute per IP across the API, and 10 failed
+  attempts per minute on `/auth/login` and `/auth/register`.
+- **Security headers** come from Helmet.
+- **Passwords** are hashed with bcrypt and never returned by the API.
+- **Ownership** is enforced in SQL: every task query is scoped by `user_id`, so
+  one account cannot read or modify another's tasks.
+- **Queries** are parameterised throughout; no SQL is built by concatenation.
+- **Registration** does not reveal whether an address is already in use.
 
 ## Project structure
 
@@ -169,6 +203,13 @@ mapping in `docker-compose.yml` means 3306 is the port *inside* the container;
 3307 is the one reachable from your machine.
 
 **`JWT_SECRET is not defined`** — copy `.env.example` to `.env` and set a value.
+
+**`CORS_ORIGIN is not defined`** — same file. Set it to the frontend origin,
+`http://localhost:5173` in development.
+
+**Logged out on every request, or "Error in the API request" from the browser** —
+the frontend origin is not in `CORS_ORIGIN`, so the session cookie is refused.
+Check the browser console for the CORS error.
 
 **Tables are missing** — the schema only runs when the volume is created. If you
 have an older volume from before, recreate it (this deletes all stored data):

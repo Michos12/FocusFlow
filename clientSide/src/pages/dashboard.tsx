@@ -44,7 +44,7 @@ export default function Dashboard() {
   };
 
   const toggleStatus = async (id: number, currentStatus: boolean) => {
-    setTodos(todos.map(t => t.id === id ? { ...t, completed: !currentStatus } : t));
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !currentStatus } : t));
     try {
       await fetchAPI(`/todos/${id}/status`, {
         method: 'PATCH',
@@ -56,7 +56,7 @@ export default function Dashboard() {
   };
 
   const deleteTodo = async (id: number) => {
-    setTodos(todos.filter(t => t.id !== id));
+    setTodos(prev => prev.filter(t => t.id !== id));
     try {
       await fetchAPI(`/todos/${id}`, { method: 'DELETE' });
     } catch {

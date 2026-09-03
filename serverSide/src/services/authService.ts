@@ -16,6 +16,9 @@ export async function generateToken(userId: number, email: string): Promise<stri
   return jwt.sign(
     { userId, email },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
+    {
+      algorithm: "HS256",
+      expiresIn: JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+    }
   );
 };

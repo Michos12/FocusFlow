@@ -10,23 +10,19 @@ export async function authenticate (
   next: NextFunction
 ) {
   try {
-    const authHeader = req.headers.authorization;
+    // The token lives in an httpOnly cookie, so page scripts cannot read it
+    // and an XSS cannot exfiltrate the session.
+    const token = req.cookies?.token;
 
-    // ❌ No header
-    if (!authHeader) {
+    if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
 
-    // Format: "Bearer TOKEN"
-    const parts = authHeader.split(" ");
-
-    if (parts.length !== 2 || parts[0] !== "Bearer") {
-      return res.status(401).json({ message: "Invalid token format" });
-    }
-
-    const token = parts[1];
-
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    // Pinning the algorithm stops a forged header from talking the library into
+    // accepting a different one.
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      algorithms: ["HS256"],
+    }) as JwtPayload;
 
     req.user = decoded;
 

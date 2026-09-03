@@ -11,7 +11,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  // Until the session probe finishes we cannot tell a logged-in user from a
+  // logged-out one, and guessing would flash the login page on every reload.
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-slate-400">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <Routes>

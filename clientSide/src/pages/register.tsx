@@ -26,8 +26,8 @@ export default function Register() {
 
       // Si el registro es exitoso, lo enviamos al login
       navigate('/login');
-    } catch (err: any) {
-      setError(err.message || "Error al registrar el usuario.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al registrar el usuario.");
     }
   };
 

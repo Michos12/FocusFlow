@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/authContext';
-import { fetchAPI } from '../services/api';
 import { LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -16,19 +15,14 @@ export default function Login() {
     setError("");
 
     try {
-      // Petición real al backend
-      const data = await fetchAPI('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password })
-      });
+      // El contexto hace la petición y guarda la sesión; el token viaja en una
+      // cookie httpOnly que este código no puede leer.
+      await login(email, password);
 
-      // Guardamos el token en el contexto
-      login(data.token);
-      
       // Redirigimos al dashboard
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || "Trouble logging in. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Trouble logging in. Please try again.");
     }
   };
 

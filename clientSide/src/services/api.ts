@@ -1,5 +1,3 @@
-const getToken = () => localStorage.getItem("token");
-
 const API_URL = "http://localhost:4000/api";
 
 // This module is not a React component, so it cannot call hooks such as
@@ -12,24 +10,21 @@ export const setUnauthorizedHandler = (handler: (() => void) | null) => {
 };
 
 export const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
-  const token = getToken();
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
-    headers,
+    // The session is an httpOnly cookie the page cannot read, so the browser
+    // has to be told to attach it to these cross-origin requests.
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
 
-    // Only an expired or invalid token ends the session. A failed login has no
-    // token to expire, and a 400 must not throw the user out of the app.
-    if (response.status === 401 && token) {
+    if (response.status === 401) {
       onUnauthorized?.();
     }
 
